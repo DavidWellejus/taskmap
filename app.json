@@ -30,7 +30,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "supabaseUrl": "https://eggsd1ntfxynijfcdgly.supabase.co",
+      "supabaseUrl": "https://eggsdlntfxynifjcdgly.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZ3NkbG50Znh5bmlmamNkZ2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1Mjk0OTIsImV4cCI6MjA2OTEwNTQ5Mn0.atADp_2V5Dq6MHqjKM6YOiqhl1ldmpWU0oVSpJR4HHg"
     }
   }
