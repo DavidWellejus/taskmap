@@ -1,4 +1,3 @@
-// App.tsx
 import { useEffect, useState } from "react";
 import { View, Alert, ActivityIndicator } from "react-native";
 import * as Location from "expo-location";
@@ -38,10 +37,7 @@ export default function App() {
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link
-          href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
-          rel="stylesheet"
-        />
+        <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
         <style>
           html, body, #map { margin: 0; height: 100%; width: 100%; }
         </style>
@@ -52,9 +48,9 @@ export default function App() {
         <script>
           const map = new maplibregl.Map({
             container: 'map',
-            style: 'https://demotiles.maplibre.org/style.json',
+            style: 'https://api.maptiler.com/maps/streets/style.json?key=AiUvGc0xtLeMjEDRJi02',
             center: [${pos.longitude}, ${pos.latitude}],
-            zoom: 14
+            zoom: 15
           });
 
           new maplibregl.Marker({ color: 'blue' })
