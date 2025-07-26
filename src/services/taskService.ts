@@ -15,3 +15,9 @@ export async function insertTask(
   });
   if (error) throw error;
 }
+
+export async function getAllTasks() {
+  const { data, error } = await supabase.rpc("get_all_tasks");
+  if (error) throw error;
+  return data;
+}

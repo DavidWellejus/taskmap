@@ -5,6 +5,7 @@ import { WebView } from "react-native-webview";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { getAllTasks } from "../services/taskService";
 
 export default function MapScreen() {
   const navigation =
@@ -13,6 +14,7 @@ export default function MapScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -26,6 +28,13 @@ export default function MapScreen() {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+
+      try {
+        const tasks = await getAllTasks();
+        setTasks(tasks);
+      } catch (err) {
+        console.error("Kunne ikke hente opgaver:", err);
+      }
     })();
   }, []);
 
@@ -61,6 +70,21 @@ export default function MapScreen() {
           new maplibregl.Marker({ color: 'blue' })
             .setLngLat([${pos.longitude}, ${pos.latitude}])
             .addTo(map);
+
+            ${tasks
+              .map(
+                (task) => `
+                new maplibregl.Marker({ color: '${
+                  task.status === "closed" ? "gray" : "red"
+                }' })
+                  .setLngLat([${task.location.coordinates[0]}, ${
+                  task.location.coordinates[1]
+                }])
+                  .setPopup(new maplibregl.Popup().setText("${task.title}"))
+                  .addTo(map);
+              `
+              )
+              .join("\n")}
         </script>
       </body>
     </html>
