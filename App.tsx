@@ -1,20 +1,22 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+// App.tsx
+import { useEffect } from "react";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { supabase } from "./src/lib/supabase";
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+  useEffect(() => {
+    (async () => {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "test@test.dk",
+        password: "1234",
+      });
+      if (error) {
+        console.error("Login-fejl:", error.message);
+      } else {
+        console.log("Login OK");
+      }
+    })();
+  }, []);
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+  return <AppNavigator />;
+}
