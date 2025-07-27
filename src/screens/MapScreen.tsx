@@ -31,6 +31,7 @@ export default function MapScreen() {
 
       try {
         const tasks = await getAllTasks();
+        console.log("Hentede tasks", tasks);
         setTasks(tasks);
       } catch (err) {
         console.error("Kunne ikke hente opgaver:", err);
@@ -77,9 +78,7 @@ export default function MapScreen() {
                 new maplibregl.Marker({ color: '${
                   task.status === "closed" ? "gray" : "red"
                 }' })
-                  .setLngLat([${task.location.coordinates[0]}, ${
-                  task.location.coordinates[1]
-                }])
+                  .setLngLat([${task.lng}, ${task.lat}])
                   .setPopup(new maplibregl.Popup().setText("${task.title}"))
                   .addTo(map);
               `
