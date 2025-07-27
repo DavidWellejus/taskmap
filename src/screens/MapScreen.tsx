@@ -5,7 +5,7 @@ import { WebView } from "react-native-webview";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { getAllTasks } from "../services/taskService";
+import { closeTask, getAllTasks } from "../services/taskService";
 
 export default function MapScreen() {
   const navigation =
@@ -31,7 +31,6 @@ export default function MapScreen() {
 
       try {
         const tasks = await getAllTasks();
-        console.log("Hentede tasks", tasks);
         setTasks(tasks);
       } catch (err) {
         console.error("Kunne ikke hente opgaver:", err);
@@ -47,7 +46,7 @@ export default function MapScreen() {
     );
   }
 
-  const html = `
+  const html = /* html */ `
     <!DOCTYPE html>
     <html>
       <head>
@@ -75,13 +74,24 @@ export default function MapScreen() {
             ${tasks
               .map(
                 (task) => `
-                new maplibregl.Marker({ color: '${
-                  task.status === "closed" ? "gray" : "red"
-                }' })
-                  .setLngLat([${task.lng}, ${task.lat}])
-                  .setPopup(new maplibregl.Popup().setText("${task.title}"))
-                  .addTo(map);
-              `
+      const marker = new maplibregl.Marker({ color: '${
+        task.status === "closed" ? "gray" : "red"
+      }' })
+        .setLngLat([${task.lng}, ${task.lat}]);
+
+      const popupContent = document.createElement('div');
+      popupContent.innerHTML = \`
+        <strong>${task.title}</strong><br/>
+        <em>${task.notes || "Ingen noter"}</em><br/>
+        ${
+          task.status === "open"
+            ? `<button onclick="window.ReactNativeWebView.postMessage('${task.id}')">Luk opgave</button>`
+            : `<span style='color:gray;'>Opgave lukket</span>`
+        }
+      \`;
+
+      marker.setPopup(new maplibregl.Popup().setDOMContent(popupContent)).addTo(map);
+    `
               )
               .join("\n")}
         </script>
@@ -91,7 +101,25 @@ export default function MapScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <WebView originWhitelist={["*"]} source={{ html }} style={{ flex: 1 }} />
+      <WebView
+        originWhitelist={["*"]}
+        source={{ html }}
+        style={{ flex: 1 }}
+        onMessage={async (event) => {
+          const taskId = event.nativeEvent.data; // fx: '8fbb2c...'
+
+          try {
+            await closeTask(taskId); // opdater status til 'closed'
+            Alert.alert("✅ Opgave lukket");
+
+            const updated = await getAllTasks(); // hent igen
+            setTasks(updated); // genopbyg kortet
+          } catch (err) {
+            Alert.alert("Fejl", "Kunne ikke lukke opgave");
+            console.error(err);
+          }
+        }}
+      />
 
       <View style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
         <Button

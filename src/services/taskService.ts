@@ -21,3 +21,12 @@ export async function getAllTasks() {
   if (error) throw error;
   return data;
 }
+
+export async function closeTask(taskId: string) {
+  const { error } = await supabase
+    .from("tasks")
+    .update({ status: "closed" })
+    .eq("id", taskId);
+
+  if (error) throw error;
+}
