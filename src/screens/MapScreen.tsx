@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { View, Alert, ActivityIndicator, Button } from "react-native";
 import * as Location from "expo-location";
 import { WebView } from "react-native-webview";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { closeTask, getAllTasks } from "../services/taskService";
@@ -16,27 +16,45 @@ export default function MapScreen() {
   } | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Lokation", "Tilladelse afvist");
-        return;
-      }
-      const location = await Location.getCurrentPositionAsync({});
-      setPos({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-      try {
-        const tasks = await getAllTasks();
-        setTasks(tasks);
-      } catch (err) {
-        console.error("Kunne ikke hente opgaver:", err);
-      }
-    })();
-  }, []);
+      const fetchData = async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Lokation", "Tilladelse afvist");
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({});
+        if (isActive) {
+          setPos({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+
+        try {
+          const fetchedTasks = await getAllTasks();
+          const validTasks = fetchedTasks.filter(
+            (t: { lat: any; lng: any }) =>
+              typeof t.lat === "number" && typeof t.lng === "number"
+          );
+          if (isActive) {
+            setTasks(validTasks);
+          }
+        } catch (err) {
+          console.error("Kunne ikke hente opgaver:", err);
+        }
+      };
+
+      fetchData();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   if (!pos) {
     return (
@@ -46,7 +64,45 @@ export default function MapScreen() {
     );
   }
 
-  const html = /* html */ `
+  // Safe escape function for HTML
+  const escapeHtml = (text: string) =>
+    text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  // Marker generation string
+  const markersHtml = tasks
+    .map((task) => {
+      const title = escapeHtml(task.title);
+      const notes = escapeHtml(task.notes || "Ingen noter");
+      const color = task.status === "closed" ? "gray" : "red";
+      const popup =
+        task.status === "open"
+          ? `<button onclick="window.ReactNativeWebView.postMessage('${task.id}')">Luk opgave</button>`
+          : `<span style='color:gray;'>Opgave lukket</span>`;
+
+      return `
+        (() => {
+          const marker = new maplibregl.Marker({ color: '${color}' })
+            .setLngLat([${task.lng}, ${task.lat}]);
+
+          const popupContent = document.createElement('div');
+          popupContent.innerHTML = \`
+            <strong>${title}</strong><br/>
+            <em>${notes}</em><br/>
+            ${popup}
+          \`;
+
+          marker.setPopup(new maplibregl.Popup().setDOMContent(popupContent)).addTo(map);
+        })();
+      `;
+    })
+    .join("\n");
+
+  const html = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -54,6 +110,7 @@ export default function MapScreen() {
         <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
         <style>
           html, body, #map { margin: 0; height: 100%; width: 100%; }
+          button { font-size: 16px; margin-top: 5px; }
         </style>
       </head>
       <body>
@@ -71,29 +128,7 @@ export default function MapScreen() {
             .setLngLat([${pos.longitude}, ${pos.latitude}])
             .addTo(map);
 
-            ${tasks
-              .map(
-                (task) => `
-      const marker = new maplibregl.Marker({ color: '${
-        task.status === "closed" ? "gray" : "red"
-      }' })
-        .setLngLat([${task.lng}, ${task.lat}]);
-
-      const popupContent = document.createElement('div');
-      popupContent.innerHTML = \`
-        <strong>${task.title}</strong><br/>
-        <em>${task.notes || "Ingen noter"}</em><br/>
-        ${
-          task.status === "open"
-            ? `<button onclick="window.ReactNativeWebView.postMessage('${task.id}')">Luk opgave</button>`
-            : `<span style='color:gray;'>Opgave lukket</span>`
-        }
-      \`;
-
-      marker.setPopup(new maplibregl.Popup().setDOMContent(popupContent)).addTo(map);
-    `
-              )
-              .join("\n")}
+          ${markersHtml}
         </script>
       </body>
     </html>
@@ -106,21 +141,18 @@ export default function MapScreen() {
         source={{ html }}
         style={{ flex: 1 }}
         onMessage={async (event) => {
-          const taskId = event.nativeEvent.data; // fx: '8fbb2c...'
-
+          const taskId = event.nativeEvent.data;
           try {
-            await closeTask(taskId); // opdater status til 'closed'
+            await closeTask(taskId);
             Alert.alert("✅ Opgave lukket");
-
-            const updated = await getAllTasks(); // hent igen
-            setTasks(updated); // genopbyg kortet
+            const updated = await getAllTasks();
+            setTasks(updated);
           } catch (err) {
             Alert.alert("Fejl", "Kunne ikke lukke opgave");
             console.error(err);
           }
         }}
       />
-
       <View style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
         <Button
           title="Opret ny opgave"
