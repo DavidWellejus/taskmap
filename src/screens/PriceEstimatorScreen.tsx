@@ -1,60 +1,64 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 
-export default function PriceEstimatorScreen() {
+export default function PriceEstimateScreen() {
   const [description, setDescription] = useState("");
-  const [result, setResult] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState("");
+  const [loading, setLoading] = useState(false); // 👈 loading state
 
   const handleEstimate = async () => {
+    setLoading(true); // ⏳ start loading
+    setEstimate(""); // ryd tidligere resultat
     try {
-      const response = await fetch("http://192.168.0.204:5050/api/estimate", {
+      const res = await fetch("http://192.168.0.204:5050/api/estimate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description }),
       });
-
-      if (!response.ok) {
-        throw new Error("Noget gik galt på serveren");
-      }
-
-      const data = await response.json();
-
-      const lines = data.items.map(
-        (item: { name: any; quantity: any; unit_price: any; total: any }) => {
-          return `${item.name}: ${item.quantity} stk á ${item.unit_price} kr = ${item.total} kr`;
-        }
-      );
-
-      lines.push(`\nTotal: ${data.total_price} kr`);
-      setResult(lines.join("\n"));
-    } catch (error: any) {
-      setResult("Fejl ved prisberegning: " + error.message);
+      const data = await res.json();
+      setEstimate(data.estimate);
+    } catch (err) {
+      setEstimate("Fejl i forbindelse med serveren");
     }
+    setLoading(false); // ✅ stop loading
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>
-        Indtast opgavebeskrivelse:
+    <ScrollView style={{ padding: 16 }}>
+      <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+        Beregn prisoverslag
       </Text>
       <TextInput
-        style={{
-          borderWidth: 1,
-          borderColor: "#ccc",
-          padding: 10,
-          marginBottom: 20,
-          borderRadius: 8,
-        }}
-        multiline
-        numberOfLines={5}
+        placeholder="Beskriv din opgave..."
         value={description}
         onChangeText={setDescription}
-        placeholder="Fx: Loft 4x5 m med 12 mm krydsfiner og reglar 45x95 mm c/c 60 cm"
+        style={{ marginVertical: 10, borderWidth: 1, padding: 8 }}
+        multiline
+        editable={!loading}
       />
-      <Button title="Beregn prisoverslag" onPress={handleEstimate} />
-      {result && <Text style={{ marginTop: 20 }}>{result}</Text>}
+      <Button
+        title={loading ? "Beregner..." : "Beregn"}
+        onPress={handleEstimate}
+        disabled={loading}
+      />
+      {loading && (
+        <View style={{ marginTop: 20 }}>
+          <ActivityIndicator size="large" />
+        </View>
+      )}
+      {estimate ? (
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontWeight: "bold" }}>Prisoverslag:</Text>
+          <Text>{estimate}</Text>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
