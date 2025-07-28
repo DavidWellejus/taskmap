@@ -153,10 +153,17 @@ export default function MapScreen() {
           }
         }}
       />
-      <View style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
+      <View style={{ position: "absolute", bottom: 50, left: 20, right: 20 }}>
+        <View style={{ marginBottom: 10 }}>
+          <Button
+            title="Opret ny opgave"
+            onPress={() => navigation.navigate("CreateTask")}
+          />
+        </View>
+
         <Button
-          title="Opret ny opgave"
-          onPress={() => navigation.navigate("CreateTask")}
+          title="Åbn prisoverslag"
+          onPress={() => navigation.navigate("PriceEstimator")}
         />
       </View>
     </View>
