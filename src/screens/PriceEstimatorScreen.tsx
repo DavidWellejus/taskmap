@@ -50,6 +50,9 @@ export default function PriceEstimateScreen() {
       />
       {loading && (
         <View style={{ marginTop: 20 }}>
+          <Text style={{ alignContent: "center" }}>
+            Overslag udregnes, vent venligst.
+          </Text>
           <ActivityIndicator size="large" />
         </View>
       )}
